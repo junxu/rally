@@ -52,47 +52,6 @@ SENLIN_BENCHMARK_OPTS = [
                  default=1.0,
                  help="Time interval(in sec) between checks when waiting for "
                       "stack checking."),
-    cfg.FloatOpt("heat_stack_update_prepoll_delay",
-                 default=2.0,
-                 help="Time(in sec) to sleep after updating a resource before "
-                      "polling for it status."),
-    cfg.FloatOpt("heat_stack_update_timeout",
-                 default=3600.0,
-                 help="Time(in sec) to wait for stack to be updated."),
-    cfg.FloatOpt("heat_stack_update_poll_interval",
-                 default=1.0,
-                 help="Time interval(in sec) between checks when waiting for "
-                      "stack update."),
-    cfg.FloatOpt("heat_stack_suspend_timeout",
-                 default=3600.0,
-                 help="Time(in sec) to wait for stack to be suspended."),
-    cfg.FloatOpt("heat_stack_suspend_poll_interval",
-                 default=1.0,
-                 help="Time interval(in sec) between checks when waiting for "
-                      "stack suspend."),
-    cfg.FloatOpt("heat_stack_resume_timeout",
-                 default=3600.0,
-                 help="Time(in sec) to wait for stack to be resumed."),
-    cfg.FloatOpt("heat_stack_resume_poll_interval",
-                 default=1.0,
-                 help="Time interval(in sec) between checks when waiting for "
-                      "stack resume."),
-    cfg.FloatOpt("heat_stack_snapshot_timeout",
-                 default=3600.0,
-                 help="Time(in sec) to wait for stack snapshot to "
-                      "be created."),
-    cfg.FloatOpt("heat_stack_snapshot_poll_interval",
-                 default=1.0,
-                 help="Time interval(in sec) between checks when waiting for "
-                      "stack snapshot to be created."),
-    cfg.FloatOpt("heat_stack_restore_timeout",
-                 default=3600.0,
-                 help="Time(in sec) to wait for stack to be restored from "
-                      "snapshot."),
-    cfg.FloatOpt("heat_stack_restore_poll_interval",
-                 default=1.0,
-                 help="Time interval(in sec) between checks when waiting for "
-                      "stack to be restored."),
     cfg.FloatOpt("heat_stack_scale_timeout",
                  default=3600.0,
                  help="Time (in sec) to wait for stack to scale up or down."),
@@ -114,73 +73,58 @@ class SenlinScenario(scenario.OpenStackScenario):
     def _list_clusters(self):
         """Return user cluster list."""
 
-        return list(self.clients("senlin").stacks.list())
+        return list(self.clients("senlin").clusters())
 
     @atomic.action_timer("senlin.create_cluster")
-    def _create_cluster(self, template, parameters=None,
-                      files=None, environment=None):
+    def _create_cluster(self, profile, min_size=0, max_size=-1
+                        desired_capacity=0, timeout=None):
         """Create a new cluster.
 
-        :param template: template with stack description.
-        :param parameters: template parameters used during stack creation
-        :param files: additional files used in template
-        :param environment: stack environment definition
+        :param profile: Profile Id used for this cluster.
+        :param min_size: Min size of the cluster.
+        :param desired_capacity: Desired capacity of the cluster.
+        :param max_size: Max size of the cluster. 
+        :param timeout: Cluster creation timeout in seconds.
 
-        :returns: object of stack
+        :returns: object of cluster
         """
-        stack_name = self.generate_random_name()
+        if not desired_capacity or desired_capacity < min_size:
+            desired_capacity = min_size
+
+        cluster_name = self.generate_random_name()
         kw = {
-            "stack_name": stack_name,
-            "disable_rollback": True,
-            "parameters": parameters or {},
-            "template": template,
-            "files": files or {},
-            "environment": environment or {}
+            "name": cluster_name,
+            "min_size": min_size,
+            "desired_capacity": desired_capacity,
+            "max_size": max_size,
+            "timeout": timeout
         }
 
-        # heat client returns body instead manager object, so we should
-        # get manager object using stack_id
-        stack_id = self.clients("heat").stacks.create(**kw)["stack"]["id"]
-        stack = self.clients("heat").stacks.get(stack_id)
+        cluster = self.clients("senlin").create_cluster(**kw)
+        cluster_id = cluster["id"]
 
-        time.sleep(CONF.benchmark.heat_stack_create_prepoll_delay)
+        time.sleep(CONF.benchmark.senlin_cluster_create_prepoll_delay)
 
-        stack = utils.wait_for(
-            stack,
-            ready_statuses=["CREATE_COMPLETE"],
+        cluster = utils.wait_for(
+            cluster,
+            ready_statuses=["ACTIVE"],
             update_resource=utils.get_from_manager(["CREATE_FAILED"]),
             timeout=CONF.benchmark.heat_stack_create_timeout,
             check_interval=CONF.benchmark.heat_stack_create_poll_interval)
 
-        return stack
-
-    @atomic.action_timer("senlin.check_stack")
-    def _check_stack(self, stack):
-        """Check given stack.
-
-        Check the stack and stack resources.
-
-        :param stack: stack that needs to be checked
-        """
-        self.clients("heat").actions.check(stack.id)
-        utils.wait_for(
-            stack,
-            ready_statuses=["CHECK_COMPLETE"],
-            update_resource=utils.get_from_manager(["CHECK_FAILED"]),
-            timeout=CONF.benchmark.heat_stack_check_timeout,
-            check_interval=CONF.benchmark.heat_stack_check_poll_interval)
+        return cluster
 
     @atomic.action_timer("senlin.delete_cluster")
-    def _delete_cluster(self, stack):
-        """Delete given stack.
+    def _delete_cluster(self, cluster):
+        """Delete given cluster.
 
-        Returns when the stack is actually deleted.
+        Returns when the cluster is actually deleted.
 
-        :param stack: stack object
+        :param cluster: cluster object
         """
-        stack.delete()
+        cluster.delete()
         utils.wait_for_status(
-            stack,
+            cluster,
             ready_statuses=["deleted"],
             check_deletion=True,
             update_resource=utils.get_from_manager(),
@@ -197,7 +141,7 @@ class SenlinScenario(scenario.OpenStackScenario):
                                                            nested_depth=1)
             if r.resource_type == "OS::Nova::Server"])
 
-    def _scale_stack(self, stack, output_key, delta):
+    def _scale_cluster(self, stack, output_key, delta):
         """Scale a stack up or down.
 
         Calls the webhook given in the output value identified by

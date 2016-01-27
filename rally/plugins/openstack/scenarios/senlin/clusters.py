@@ -27,7 +27,7 @@ class SenlinClusters(utils.SenlinScenario):
     @types.set(template_path=types.FileType, files=types.FileTypeDict)
     @validation.required_services(consts.Service.SENLIN)
     @validation.required_openstack(users=True)
-    @scenario.configure(context={"cleanup": ["heat"]})
+    @scenario.configure(context={"cleanup": ["senlin"]})
     def create_and_list_cluster(self, template_path, parameters=None,
                               files=None, environment=None):
         """Create a cluster and then list all clusters.
@@ -46,9 +46,9 @@ class SenlinClusters(utils.SenlinScenario):
     @types.set(template_path=types.FileType, files=types.FileTypeDict)
     @validation.required_services(consts.Service.SENLIN)
     @validation.required_openstack(users=True)
-    @scenario.configure(context={"cleanup": ["heat"]})
-    def create_and_delete_stack(self, template_path, parameters=None,
-                                files=None, environment=None):
+    @scenario.configure(context={"cleanup": ["senlin"]})
+    def create_and_delete_cluster(self, template_path, parameters=None,
+                                  files=None, environment=None):
         """Create and then delete a cluster.
 
         Measure the "senlin cluster-create" and "senlin cluster-delete" commands
@@ -67,9 +67,9 @@ class SenlinClusters(utils.SenlinScenario):
     @types.set(template_path=types.FileType, files=types.FileTypeDict)
     @validation.required_services(consts.Service.HEAT)
     @validation.required_openstack(users=True)
-    @scenario.configure(context={"cleanup": ["heat"]})
-    def create_check_delete_stack(self, template_path, parameters=None,
-                                  files=None, environment=None):
+    @scenario.configure(context={"cleanup": ["senlin"]})
+    def create_check_delete_cluster(self, template_path, parameters=None,
+                                    files=None, environment=None):
         """Create, check and delete a stack.
 
         Measure the performance of the following commands:
@@ -91,10 +91,10 @@ class SenlinClusters(utils.SenlinScenario):
     @types.set(template_path=types.FileType, files=types.FileTypeDict)
     @validation.required_services(consts.Service.HEAT)
     @validation.required_openstack(users=True)
-    @scenario.configure(context={"cleanup": ["heat"]})
-    def create_stack_and_scale(self, template_path, output_key, delta,
-                               parameters=None, files=None,
-                               environment=None):
+    @scenario.configure(context={"cleanup": ["senlin"]})
+    def create_cluster_and_scale(self, template_path, output_key, delta,
+                                 parameters=None, files=None,
+                                 environment=None):
         """Create an autoscaling stack and invoke a scaling policy.
 
         Measure the performance of autoscaling webhooks.
@@ -110,10 +110,6 @@ class SenlinClusters(utils.SenlinScenario):
                       file path)
         :param environment: stack environment definition (dict)
         """
-        # TODO(stpierre): Kilo Heat is *much* better than Juno for the
-        # requirements of this scenario, so once Juno goes out of
-        # support we should update this scenario to suck less. Namely:
-        #
         # * Kilo Heat can supply alarm_url attributes without needing
         #   an output key, so instead of getting the output key from
         #   the user, just get the name of the ScalingPolicy to apply.
