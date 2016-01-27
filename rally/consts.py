@@ -37,6 +37,7 @@ class _TempestTestsAPI(utils.ImmutableMixin, utils.EnumMixin):
     ORCHESTRATION = "orchestration"
     TELEMETRY = "telemetry"
     VOLUME = "volume"
+    CLUSTERING = "clustering"
 
 
 class _TempestTestsSets(utils.ImmutableMixin, utils.EnumMixin):
@@ -109,6 +110,7 @@ class _Service(utils.ImmutableMixin, utils.EnumMixin):
     MISTRAL = "mistral"
     MURANO = "murano"
     IRONIC = "ironic"
+    SENLIN = "senlin"
 
 
 class _ServiceType(utils.ImmutableMixin, utils.EnumMixin):
@@ -134,6 +136,7 @@ class _ServiceType(utils.ImmutableMixin, utils.EnumMixin):
     WORKFLOW_EXECUTION = "workflowv2"
     APPLICATION_CATALOG = "application-catalog"
     BARE_METAL = "baremetal"
+    CLUSTERING = "clustering"
 
     def __init__(self):
         self.__names = {
@@ -157,6 +160,7 @@ class _ServiceType(utils.ImmutableMixin, utils.EnumMixin):
             self.WORKFLOW_EXECUTION: _Service.MISTRAL,
             self.APPLICATION_CATALOG: _Service.MURANO,
             self.BARE_METAL: _Service.IRONIC,
+            self.CLUSTERING: _Service.SENLIN,
         }
 
     def __getitem__(self, service_type):

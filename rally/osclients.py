@@ -328,6 +328,23 @@ class Heat(OSClient):
         return client
 
 
+@configure("senlin", default_version="1", default_service_type="clustering",
+           supported_versions=["1"])
+class Senlin(OSClient):
+    def create_client(self, version=None, service_type=None):
+        """Return senlin client."""
+        from senlinclient import client as senlin
+        kc = self.keystone()
+        clustering_api_url = kc.service_catalog.url_for(
+            service_type=self.choose_service_type(service_type),
+            endpoint_type=self.credential.endpoint_type,
+            region_name=self.credential.region_name)
+        client = senlin.Client(self.choose_version(version),
+                               endpoint=clustering_api_url,
+                               token=kc.auth_token)
+        return client
+
+
 @configure("cinder", default_version="1", default_service_type="volume",
            supported_versions=["1", "2"])
 class Cinder(OSClient):
