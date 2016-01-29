@@ -28,19 +28,21 @@ class SenlinClusters(utils.SenlinScenario):
     @validation.required_services(consts.Service.SENLIN)
     @validation.required_openstack(users=True)
     @scenario.configure(context={"cleanup": ["senlin"]})
-    def create_and_list_cluster(self, template_path, parameters=None,
-                              files=None, environment=None):
+    def create_and_list_cluster(self, profile, min_size=0, max_size=-1,
+                                desired_capacity=None, timeout=None):
         """Create a cluster and then list all clusters.
 
         Measure the "senlin cluster-create" and "senlin cluster-list" commands
         performance.
 
-        :param template_path: path to stack template file
-        :param parameters: parameters to use in heat template
-        :param files: files used in template
-        :param environment: stack environment definition
+        :param profile: Profile Id used for this cluster.
+        :param min_size: Min size of the cluster.
+        :param desired_capacity: Desired capacity of the cluster.
+        :param max_size: Max size of the cluster. 
+        :param timeout: Cluster creation timeout in seconds.
+
         """
-        self._create_cluster(template_path, parameters, files, environment)
+        self._create_cluster()
         self._list_clusters()
 
     @types.set(template_path=types.FileType, files=types.FileTypeDict)
