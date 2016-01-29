@@ -45,20 +45,20 @@ SENLIN_BENCHMARK_OPTS = [
                  default=1.0,
                  help="Time interval(in sec) between checks when waiting for "
                       "cluster deletion."),
-    cfg.FloatOpt("heat_stack_check_timeout",
+    cfg.FloatOpt("senlin_cluster_check_timeout",
                  default=3600.0,
-                 help="Time(in sec) to wait for stack to be checked."),
-    cfg.FloatOpt("heat_stack_check_poll_interval",
+                 help="Time(in sec) to wait for cluster to be checked."),
+    cfg.FloatOpt("senlin_cluster_check_poll_interval",
                  default=1.0,
                  help="Time interval(in sec) between checks when waiting for "
-                      "stack checking."),
-    cfg.FloatOpt("heat_stack_scale_timeout",
+                      "cluster checking."),
+    cfg.FloatOpt("senlin_cluster_scale_timeout",
                  default=3600.0,
-                 help="Time (in sec) to wait for stack to scale up or down."),
-    cfg.FloatOpt("heat_stack_scale_poll_interval",
+                 help="Time (in sec) to wait for cluster to scale up or down."),
+    cfg.FloatOpt("senlin_cluster_scale_poll_interval",
                  default=1.0,
                  help="Time interval (in sec) between checks when waiting for "
-                      "a stack to scale up or down."),
+                      "a cluster to scale up or down."),
 ]
 
 CONF = cfg.CONF
@@ -108,9 +108,10 @@ class SenlinScenario(scenario.OpenStackScenario):
         cluster = utils.wait_for(
             cluster,
             ready_statuses=["ACTIVE"],
-            update_resource=utils.get_from_manager(["CREATE_FAILED"]),
-            timeout=CONF.benchmark.heat_stack_create_timeout,
-            check_interval=CONF.benchmark.heat_stack_create_poll_interval)
+            failure_statuses=["ERROR"],
+            update_resource=self._update_cluster,
+            timeout=CONF.benchmark.senlin_cluster_create_timeout,
+            check_interval=CONF.benchmark.senlin_cluster_create_poll_interval)
 
         return cluster
 
@@ -122,70 +123,53 @@ class SenlinScenario(scenario.OpenStackScenario):
 
         :param cluster: cluster object
         """
-        cluster.delete()
-        utils.wait_for_status(
+        LOG.debug("Deleting cluster `%s`" % cluster.id)
+        self.clients("senlin").delete_cluster(cluster.id)
+        #cluster.delete()
+        utils.wait_for(
             cluster,
-            ready_statuses=["deleted"],
-            check_deletion=True,
             update_resource=utils.get_from_manager(),
-            timeout=CONF.benchmark.heat_stack_delete_timeout,
-            check_interval=CONF.benchmark.heat_stack_delete_poll_interval)
+            timeout=CONF.benchmark.senlin_cluster_delete_timeout,
+            check_interval=CONF.benchmark.senlin_cluster_delete_poll_interval,
+            is_ready=self._is_cluster_deleted)
 
-    def _count_instances(self, stack):
-        """Count instances in a Heat stack.
+    def _is_cluster_deleted(self, cluster):
+        LOG.debug("Checking cluster `%s` to be deleted. Status: `%s`" %
+                  (cluster.name, cluster.status))
+        try:
+            self.clients("senlin").get_cluster(cluster.id)
+            return False
+        except Exception:
+            return True
+ 
+    @atomic.action_timer("senlin.scale_up")
+    def _scale_cluster_up(self, cluster, count):
+        """Remove a given number of worker nodes from the cluster.
 
-        :param stack: stack to count instances in.
+        :param cluster: The cluster to be scaled
+        :param count: The number of nodes to be added.
         """
-        return len([
-            r for r in self.clients("heat").resources.list(stack.id,
-                                                           nested_depth=1)
-            if r.resource_type == "OS::Nova::Server"])
+        LOG.debug("Scale cluster `%s`" % cluster.id)
+        self.clients("senlin").cluster_scale_out(cluster.id, count)
+        self._wait_active(cluster)
 
-    def _scale_cluster(self, stack, output_key, delta):
-        """Scale a stack up or down.
+    @atomic.action_timer("senlin.scale_down")
+    def _scale_cluster_up(self, cluster, count):
+        """Remove a given number of worker nodes from the cluster.
 
-        Calls the webhook given in the output value identified by
-        'output_key', and waits for the stack size to change by
-        'delta'.
-
-        :param stack: stack to scale up or down
-        :param output_key: The name of the output to get the URL from
-        :param delta: The expected change in number of instances in
-                      the stack (signed int)
+        :param cluster: The cluster to be scaled
+        :param count: The number of nodes to be removed.
         """
-        num_instances = self._count_instances(stack)
-        expected_instances = num_instances + delta
-        LOG.debug("Scaling stack %s from %s to %s instances with %s" %
-                  (stack.id, num_instances, expected_instances, output_key))
-        with atomic.ActionTimer(self, "heat.scale_with_%s" % output_key):
-            self._stack_webhook(stack, output_key)
-            utils.wait_for(
-                stack,
-                is_ready=lambda s: (
-                    self._count_instances(s) == expected_instances),
-                update_resource=utils.get_from_manager(
-                    ["UPDATE_FAILED"]),
-                timeout=CONF.benchmark.heat_stack_scale_timeout,
-                check_interval=CONF.benchmark.heat_stack_scale_poll_interval)
+        LOG.debug("Scale cluster `%s`" % cluster.id)
+        self.clients("senlin").cluster_scale_in(cluster.id, count)
+        self._wait_active(cluster)
 
-    def _stack_webhook(self, stack, output_key):
-        """POST to the URL given in the output value identified by output_key.
-
-        This can be used to scale stacks up and down, for instance.
-
-        :param stack: stack to call a webhook on
-        :param output_key: The name of the output to get the URL from
-        :raises InvalidConfigException: if the output key is not found
-        """
-        url = None
-        for output in stack.outputs:
-            if output["output_key"] == output_key:
-                url = output["output_value"]
-                break
-        else:
-            raise exceptions.InvalidConfigException(
-                "No output key %(key)s found in stack %(id)s" %
-                {"key": output_key, "id": stack.id})
-
-        with atomic.ActionTimer(self, "heat.%s_webhook" % output_key):
-            requests.post(url).raise_for_status()
+    def _wait_active(self, cluster):
+        utils.wait_for(
+            resource=cluster, ready_statuses=["ACTIVE"],
+            failure_statuses=["WARNING"], update_resource=self._update_cluster,
+            timeout=CONF.benchmark.senlin_cluster_create_timeout,
+            check_interval=CONF.benchmark.senlin_cluster_check_interval)
+        
+    def _update_cluster(self, cluster):
+        return self.clients("senlin").get_cluster(cluster.id)
