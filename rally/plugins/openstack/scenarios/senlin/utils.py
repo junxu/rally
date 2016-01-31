@@ -23,6 +23,7 @@ from rally import exceptions
 from rally.plugins.openstack import scenario
 from rally.task import atomic
 from rally.task import utils
+from senlinclient.common import senlin_utils
 
 LOG = logging.getLogger(__name__)
 
@@ -185,3 +186,17 @@ class SenlinScenario(scenario.OpenStackScenario):
         
     def _update_cluster(self, cluster):
         return self.clients("senlin").get_cluster(cluster.id)
+
+    def _create_profile(self, spec_file):
+        spec =  senlin_utils.get_spec_content(spec_file)
+        type_name = spec.get('type', None)
+        type_version = spec.get('version', None)
+        properties = spec.get('properties', None)
+
+        params = {
+            'name': args.name,
+            'spec': spec,
+        }
+     
+        profile = service.create_profile(**params)
+        return profile
