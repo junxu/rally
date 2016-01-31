@@ -149,20 +149,32 @@ class SenlinScenario(scenario.OpenStackScenario):
         :param cluster: The cluster to be scaled
         :param count: The number of nodes to be added.
         """
-        LOG.debug("Scale cluster `%s`" % cluster.id)
+        LOG.debug("Scale-out cluster `%s`" % cluster.id)
         self.clients("senlin").cluster_scale_out(cluster.id, count)
         self._wait_active(cluster)
 
     @atomic.action_timer("senlin.scale_down")
-    def _scale_cluster_up(self, cluster, count):
+    def _scale_cluster_down(self, cluster, count):
         """Remove a given number of worker nodes from the cluster.
 
         :param cluster: The cluster to be scaled
         :param count: The number of nodes to be removed.
         """
-        LOG.debug("Scale cluster `%s`" % cluster.id)
+        LOG.debug("Scale-in cluster `%s`" % cluster.id)
         self.clients("senlin").cluster_scale_in(cluster.id, count)
         self._wait_active(cluster)
+
+    def _scale_cluster(self, cluster, delta):
+        """Scale a given number of worker nodes from the cluster.
+
+        :param cluster: The cluster to be scaled
+        :param delta: The number of nodes to be scaled.
+        """
+        LOG.debug("Scale cluster `%s`" % cluster.id)
+        if delta > 0 :
+            self._scale_cluster_down(cluster, delta)
+        else:
+            self._scale_cluster_up(cluster, abs(delta))
 
     def _wait_active(self, cluster):
         utils.wait_for(

@@ -24,7 +24,6 @@ from rally.task import validation
 class SenlinClusters(utils.SenlinScenario):
     """Benchmark scenarios for Heat stacks."""
 
-    @types.set(template_path=types.FileType, files=types.FileTypeDict)
     @validation.required_services(consts.Service.SENLIN)
     @validation.required_openstack(users=True)
     @scenario.configure(context={"cleanup": ["senlin"]})
@@ -42,83 +41,49 @@ class SenlinClusters(utils.SenlinScenario):
         :param timeout: Cluster creation timeout in seconds.
 
         """
-        self._create_cluster()
+        self._create_cluster(profile, min_size, max_size, desired_capacity,
+                             timeout)
         self._list_clusters()
 
-    @types.set(template_path=types.FileType, files=types.FileTypeDict)
     @validation.required_services(consts.Service.SENLIN)
     @validation.required_openstack(users=True)
     @scenario.configure(context={"cleanup": ["senlin"]})
-    def create_and_delete_cluster(self, template_path, parameters=None,
-                                  files=None, environment=None):
+    def create_and_delete_cluster(self, profile, min_size=0, max_size=-1,
+                                  desired_capacity=None, timeout=None):
         """Create and then delete a cluster.
 
         Measure the "senlin cluster-create" and "senlin cluster-delete" commands
         performance.
 
-        :param template_path: path to stack template file
-        :param parameters: parameters to use in heat template
-        :param files: files used in template
-        :param environment: stack environment definition
+        :param profile: Profile Id used for this cluster.
+        :param min_size: Min size of the cluster.
+        :param desired_capacity: Desired capacity of the cluster.
+        :param max_size: Max size of the cluster. 
+        :param timeout: Cluster creation timeout in seconds.
         """
 
-        stack = self._create_stack(template_path, parameters,
-                                   files, environment)
-        self._delete_stack(stack)
+        cluster = self._create_cluster(profile, min_size, max_size,
+                                       desired_capacity, timeout)
+        self._delete_stack(cluster)
 
-    @types.set(template_path=types.FileType, files=types.FileTypeDict)
-    @validation.required_services(consts.Service.HEAT)
+    @validation.required_services(consts.Service.SENLIN)
     @validation.required_openstack(users=True)
     @scenario.configure(context={"cleanup": ["senlin"]})
-    def create_check_delete_cluster(self, template_path, parameters=None,
-                                    files=None, environment=None):
-        """Create, check and delete a stack.
+    def create_cluster_and_scale(self, profile, delta, min_size=0, max_size=-1,
+                                 desired_capacity=None, timeout=None):
+        """Create an cluster and invoke a scale action.
 
-        Measure the performance of the following commands:
-        - heat stack-create
-        - heat action-check
-        - heat stack-delete
+        Measure the performance of scale action.
 
-        :param template_path: path to stack template file
-        :param parameters: parameters to use in heat template
-        :param files: files used in template
-        :param environment: stack environment definition
-        """
-
-        stack = self._create_stack(template_path, parameters,
-                                   files, environment)
-        self._check_stack(stack)
-        self._delete_stack(stack)
-
-    @types.set(template_path=types.FileType, files=types.FileTypeDict)
-    @validation.required_services(consts.Service.HEAT)
-    @validation.required_openstack(users=True)
-    @scenario.configure(context={"cleanup": ["senlin"]})
-    def create_cluster_and_scale(self, template_path, output_key, delta,
-                                 parameters=None, files=None,
-                                 environment=None):
-        """Create an autoscaling stack and invoke a scaling policy.
-
-        Measure the performance of autoscaling webhooks.
-
-        :param template_path: path to template file that includes an
-                              OS::Heat::AutoScalingGroup resource
-        :param output_key: the stack output key that corresponds to
-                           the scaling webhook
+        :param profile: Profile Id used for this cluster.
+        :param min_size: Min size of the cluster.
+        :param desired_capacity: Desired capacity of the cluster.
+        :param max_size: Max size of the cluster. 
+        :param timeout: Cluster creation timeout in seconds.
         :param delta: the number of instances the stack is expected to
                       change by.
-        :param parameters: parameters to use in heat template
-        :param files: files used in template (dict of file name to
-                      file path)
-        :param environment: stack environment definition (dict)
         """
-        # * Kilo Heat can supply alarm_url attributes without needing
-        #   an output key, so instead of getting the output key from
-        #   the user, just get the name of the ScalingPolicy to apply.
-        # * Kilo Heat changes the status of a stack while scaling it,
-        #   so _scale_stack() can check for the stack to have changed
-        #   size and for it to be in UPDATE_COMPLETE state, so the
-        #   user no longer needs to specify the expected delta.
-        stack = self._create_stack(template_path, parameters, files,
-                                   environment)
-        self._scale_stack(stack, output_key, delta)
+        cluster = self._create_cluster(profile, min_size, max_size,
+                                       desired_capacity, timeout)
+        self._delete_stack(cluster)
+        self._scale_cluster(cluster, delta)
