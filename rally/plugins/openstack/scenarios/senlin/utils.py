@@ -76,7 +76,7 @@ class SenlinScenario(scenario.OpenStackScenario):
         return list(self.clients("senlin").clusters())
 
     @atomic.action_timer("senlin.create_cluster")
-    def _create_cluster(self, profile, min_size=0, max_size=-1
+    def _create_cluster(self, profile, min_size=0, max_size=-1,
                         desired_capacity=0, timeout=None):
         """Create a new cluster.
 
