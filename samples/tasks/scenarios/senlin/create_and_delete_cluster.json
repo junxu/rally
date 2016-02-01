@@ -1,0 +1,25 @@
+{
+    "SenlinClusters.create_and_delete_cluster": [
+        {
+            "args": {
+                "min_size": 1,
+                "max_size": 10
+            },
+            "runner": {
+                "type": "constant",
+                "times": 4,
+                "concurrency": 2
+            },
+            "context": {
+                "users": {
+                    "tenants": 1,
+                    "users_per_tenant": 1
+                },
+                "senlin_profile": {
+                    "spec_file": "profile/server.yaml.template"
+                },
+                "network": {}
+            }
+        }
+    ]
+}

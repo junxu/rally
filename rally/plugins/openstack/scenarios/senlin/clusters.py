@@ -22,7 +22,7 @@ from rally.task import validation
 
 
 class SenlinClusters(utils.SenlinScenario):
-    """Benchmark scenarios for Heat stacks."""
+    """Benchmark scenarios for Senlin clusters."""
 
     @validation.required_services(consts.Service.SENLIN)
     @validation.required_openstack(users=True)
@@ -71,7 +71,7 @@ class SenlinClusters(utils.SenlinScenario):
     @validation.required_services(consts.Service.SENLIN)
     @validation.required_openstack(users=True)
     @scenario.configure(context={"cleanup": ["senlin"]})
-    def create_cluster_and_scale(self, delta, min_size=0, max_size=-1,
+    def create_cluster_and_scale(self, deltas, min_size=0, max_size=-1,
                                  desired_capacity=None, timeout=None):
         """Create an cluster and invoke a scale action.
 
@@ -88,5 +88,7 @@ class SenlinClusters(utils.SenlinScenario):
         profile = self.context["tenant"]["senlin"]["profile"]
         cluster = self._create_cluster(profile, min_size, max_size,
                                        desired_capacity, timeout)
+        for delta in deltas: 
+            self._scale_cluster(cluster, delta)
+
         self._delete_stack(cluster)
-        self._scale_cluster(cluster, delta)

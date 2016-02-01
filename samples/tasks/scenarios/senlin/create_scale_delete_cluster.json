@@ -1,0 +1,26 @@
+{
+    "SenlinClusters.create_scale_delete_cluster": [
+        {
+            "args": {
+                "deltas": [1, -1, 1, -1],
+                "min_size": 1,
+                "max_size": 10
+            },
+            "runner": {
+                "type": "constant",
+                "times": 4,
+                "concurrency": 2
+            },
+            "context": {
+                "users": {
+                    "tenants": 1,
+                    "users_per_tenant": 1
+                },
+                "senlin_profile": {
+                    "spec_file": "profile/server.yaml.template"
+                },
+                "network": {}
+            }
+        }
+    ]
+}

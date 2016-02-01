@@ -44,18 +44,13 @@ class ClusterGenerator(context.Context):
             "clusters_per_tenant": {
                 "type": "integer",
                 "minimum": 1
-            },
-            "nodes_per_cluster": {
-                "type": "integer",
-                "minimum": 1
             }
         },
         "additionalProperties": False
     }
 
     DEFAULT_CONFIG = {
-        "clusters_per_tenant": 1,
-        "nodess_per_cluster": 2
+        "clusters_per_tenant": 1
     }
 
     @logging.log_task_wrapper(LOG.info, _("Enter context: `Senlin Clusters`"))

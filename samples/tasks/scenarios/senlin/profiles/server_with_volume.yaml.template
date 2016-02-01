@@ -1,0 +1,22 @@
+type: os.nova.server
+version: 1.0
+properties:
+  name: cirros_server
+  flavor: m1.small
+  adminPass: 654321
+  image: 2ddc08c2-c8cd-4b52-9fe2-642fcf5d763d
+  networks:
+    - network: net1
+  metadata: {key1: xujun1}
+  block_device_mapping_v2:
+    - volume_size: 20
+      uuid: 2ddc08c2-c8cd-4b52-9fe2-642fcf5d763d
+      source_type: image
+      destination_type: local
+      boot_index: 0
+      delete_on_termination: True
+    - volume_size: 100
+      source_type: volume
+      destination_type: volume
+      volume_type: "shdcluster1"
+      device_name: vdb
