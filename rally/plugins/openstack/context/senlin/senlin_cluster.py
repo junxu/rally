@@ -54,33 +54,19 @@ class ClusterGenerator(context.Context):
     }
 
     DEFAULT_CONFIG = {
-        "clusters_per_tenant": 2,
-        "nodess_per_cluster": 10
+        "clusters_per_tenant": 1,
+        "nodess_per_cluster": 2
     }
-
-    @staticmethod
-    def _prepare_stack_template(res_num):
-        template = {
-            "heat_template_version": "2014-10-16",
-            "description": "Test template for rally",
-            "resources": {}
-        }
-        rand_string = {"type": "OS::Heat::RandomString"}
-        for i in range(res_num):
-            template["resources"]["TestResource%d" % i] = rand_string
-        return template
 
     @logging.log_task_wrapper(LOG.info, _("Enter context: `Senlin Clusters`"))
     def setup(self):
-        template = self._prepare_stack_template(
-            self.config["resources_per_stack"])
         for user, tenant_id in rutils.iterate_per_tenants(
                 self.context["users"]):
             senlin_scenario = senlin_utils.SenlinScenario(
                 {"user": user, "task": self.context["task"]})
             self.context["tenants"][tenant_id]["clusters"] = []
             for i in range(self.config["clusters_per_tenant"]):
-                cluster = senlin_scenario._create_cluster(template)
+                cluster = senlin_scenario._create_cluster()
                 self.context["tenants"][tenant_id]["clusters"].append(cluster.id)
 
     @logging.log_task_wrapper(LOG.info, _("Exit context: `Senlin Clusters`"))

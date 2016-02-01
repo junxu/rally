@@ -188,6 +188,7 @@ class SenlinScenario(scenario.OpenStackScenario):
         return self.clients("senlin").get_cluster(cluster.id)
 
     def _create_profile(self, spec_file):
+        LOG.debug("Create profile.")
         spec =  senlin_utils.get_spec_content(spec_file)
         type_name = spec.get('type', None)
         type_version = spec.get('version', None)
@@ -200,3 +201,7 @@ class SenlinScenario(scenario.OpenStackScenario):
      
         profile = service.create_profile(**params)
         return profile
+
+    def _delete_profile(self, profile):
+        LOG.debug("Delete profile `%s`" % profile.id)
+        service.delete_profile(profile.id)

@@ -27,7 +27,7 @@ class SenlinClusters(utils.SenlinScenario):
     @validation.required_services(consts.Service.SENLIN)
     @validation.required_openstack(users=True)
     @scenario.configure(context={"cleanup": ["senlin"]})
-    def create_and_list_cluster(self, profile, min_size=0, max_size=-1,
+    def create_and_list_cluster(self, min_size=0, max_size=-1,
                                 desired_capacity=None, timeout=None):
         """Create a cluster and then list all clusters.
 
@@ -41,6 +41,7 @@ class SenlinClusters(utils.SenlinScenario):
         :param timeout: Cluster creation timeout in seconds.
 
         """
+        profile = self.context["tenant"]["senlin"]["profile"]
         self._create_cluster(profile, min_size, max_size, desired_capacity,
                              timeout)
         self._list_clusters()
@@ -48,7 +49,7 @@ class SenlinClusters(utils.SenlinScenario):
     @validation.required_services(consts.Service.SENLIN)
     @validation.required_openstack(users=True)
     @scenario.configure(context={"cleanup": ["senlin"]})
-    def create_and_delete_cluster(self, profile, min_size=0, max_size=-1,
+    def create_and_delete_cluster(self, min_size=0, max_size=-1,
                                   desired_capacity=None, timeout=None):
         """Create and then delete a cluster.
 
@@ -62,6 +63,7 @@ class SenlinClusters(utils.SenlinScenario):
         :param timeout: Cluster creation timeout in seconds.
         """
 
+        profile = self.context["tenant"]["senlin"]["profile"]
         cluster = self._create_cluster(profile, min_size, max_size,
                                        desired_capacity, timeout)
         self._delete_stack(cluster)
@@ -69,7 +71,7 @@ class SenlinClusters(utils.SenlinScenario):
     @validation.required_services(consts.Service.SENLIN)
     @validation.required_openstack(users=True)
     @scenario.configure(context={"cleanup": ["senlin"]})
-    def create_cluster_and_scale(self, profile, delta, min_size=0, max_size=-1,
+    def create_cluster_and_scale(self, delta, min_size=0, max_size=-1,
                                  desired_capacity=None, timeout=None):
         """Create an cluster and invoke a scale action.
 
@@ -83,6 +85,7 @@ class SenlinClusters(utils.SenlinScenario):
         :param delta: the number of instances the stack is expected to
                       change by.
         """
+        profile = self.context["tenant"]["senlin"]["profile"]
         cluster = self._create_cluster(profile, min_size, max_size,
                                        desired_capacity, timeout)
         self._delete_stack(cluster)

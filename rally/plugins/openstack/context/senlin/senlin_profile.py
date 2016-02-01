@@ -42,64 +42,34 @@ class SenlinProfile(context.Context):
             }
         },
         "oneOf": [
-            {"required": ["spec_file", "profile_name"]}
+            {"required": ["spec_file"]}
         ],
         "additionalProperties": False
     }
-
-    def _create_profile(self, spec_file, profile_name):
-        scenario = glance_utils.GlanceScenario(
-            {"user": user, "task": self.context["task"]})
-        if not profile_name: 
-            profile_name = self.generate_random_name()
-        profile = scenario._create_profile(spec_file, profile_name)
-        return profile.id
 
     @logging.log_task_wrapper(LOG.info, _("Enter context: `Senlin Profile`"))
     def setup(self):
         utils.init_sahara_context(self)
         self.context["senlin"]["profile"] = {}
 
-        # The user may want to use the existing image. In this case he should
-        # make sure that the image is public and has all required metadata.
         spec_file = self.config.get("spec_file")
+        profile_name = self.config.get(profile_name) 
+        if not profile_name: 
+            profile_name = self.generate_random_name()
 
-        self.context["sahara"][""] = not image_uuid
+        for user, tenant_id in rutils.iterate_per_tenants(
+                self.context["users"]):
+            senlin_scenario = senlin_utils.SenlinScenario(
+                {"user": user, "task": self.context["task"]})
+     
+            profile = senlin_scenario._create_profile(
+                spec_file, profile_name)
 
-        if image_uuid:
-            # Using the first user to check the existing image.
-            user = self.context["users"][0]
-            clients = osclients.Clients(user["credential"])
-
-            image = clients.glance().images.get(image_uuid)
-
-            if not image.is_public:
-                raise exceptions.BenchmarkSetupFailure(
-                    "Image provided in the Sahara context should be public.")
-            image_id = image_uuid
-
-            for user, tenant_id in rutils.iterate_per_tenants(
-                    self.context["users"]):
-                self.context["tenants"][tenant_id]["sahara"]["image"] = (
-                    image_id)
-        else:
-            for user, tenant_id in rutils.iterate_per_tenants(
-                    self.context["users"]):
-
-                image_id = self._create_image(
-                    hadoop_version=self.config["hadoop_version"],
-                    image_url=self.config["image_url"],
-                    plugin_name=self.config["plugin_name"],
-                    user=user,
-                    user_name=self.config["username"])
-
-                self.context["tenants"][tenant_id]["sahara"]["image"] = (
-                    image_id)
+            self.context["tenants"][tenant_id]["senlin"]["profile"] = (
+                profile.id)
 
     @logging.log_task_wrapper(LOG.info, _("Exit context: `Senlin Profile`"))
     def cleanup(self):
-
-        # TODO(boris-42): Delete only resources created by this context
         if self.context["senlin"]["need_profile_cleanup"]:
             resource_manager.cleanup(names=["senlin.profiles"],
                                      users=self.context.get("users", []))
