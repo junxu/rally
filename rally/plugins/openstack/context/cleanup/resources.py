@@ -15,6 +15,7 @@
 
 from boto import exception as boto_exception
 from neutronclient.common import exceptions as neutron_exceptions
+from openstack import exceptions as senlin_exceptions
 from saharaclient.api import base as saharaclient_base
 
 from rally.common import logging
@@ -599,6 +600,75 @@ class FuelEnvironment(base.ResourceManager):
         return [env for env in self._manager().list()
                 if utils.name_matches_object(env["name"],
                                              futils.FuelScenario)]
+
+
+# SENLIN 
+_senlin_order = get_order(1500)
+
+@base.resource("senlin", "clusters", order=next(_senlin_order),
+               tenant_resource=True)
+class SenlinCluster(base.ResourceManager):
+    def _manager(self):
+        client = self._admin_required and self.admin or self.user
+        return getattr(client, self._service)()
+
+    def id(self):
+        """Returns id of resource."""
+        return self.raw_resource.id
+
+    def is_deleted(self):
+        """Checks if the resource is deleted.
+
+        Fetch resource by id from service and check it status.
+        In case of NotFound or status is DELETED or DELETE_COMPLETE returns
+        True, otherwise False.
+        """
+        try:
+            resource = self._manager().get_cluster(self.id())
+            return False 
+        except Exception as e:
+            return isinstance(e, senlin_exceptions.ResourceNotFound)
+
+    def delete(self):
+        """Delete resource that corresponds to instance of this class."""
+        self._manager().delete_cluster(self.id())
+
+    def list(self):
+        """List all resources specific for admin or user."""
+        return self._manager().clusters()
+
+@base.resource("senlin", "profiles", order=next(_senlin_order),
+               tenant_resource=True)
+class SenlinProfile(base.ResourceManager):
+    def _manager(self):
+        client = self._admin_required and self.admin or self.user
+        return getattr(client, self._service)()
+
+    def id(self):
+        """Returns id of resource."""
+        return self.raw_resource.id
+
+    def is_deleted(self):
+        """Checks if the resource is deleted.
+
+        Fetch resource by id from service and check it status.
+        In case of NotFound or status is DELETED or DELETE_COMPLETE returns
+        True, otherwise False.
+        """
+        try:
+            resource = self._manager().get_profile(self.id())
+            return False 
+        except Exception as e:
+            #return getattr(e, "code", getattr(e, "http_status", 400)) == 404
+            return isinstance(e, senlin_exceptions.ResourceNotFound)
+
+    def delete(self):
+        """Delete resource that corresponds to instance of this class."""
+        self._manager().delete_profile(self.id())
+
+    def list(self):
+        """List all resources specific for admin or user."""
+        return self._manager().profiles()
 
 
 # KEYSTONE
