@@ -96,7 +96,7 @@ class SenlinScenario(scenario.OpenStackScenario):
         cluster_name = self.generate_random_name()
         kw = {
             "name": cluster_name,
-            'profile_id': args.profile,
+            'profile_id': profile,
             "min_size": min_size,
             "desired_capacity": desired_capacity,
             "max_size": max_size,
