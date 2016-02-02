@@ -19,7 +19,7 @@ from rally import consts
 from rally import exceptions
 from rally import osclients
 from rally.plugins.openstack.context.cleanup import manager as resource_manager
-from rally.plugins.openstack.scenarios.senlin import utils
+from rally.plugins.openstack.scenarios.senlin import utils as senlin_utils
 from rally.task import context
 
 
@@ -49,11 +49,10 @@ class SenlinProfile(context.Context):
 
     @logging.log_task_wrapper(LOG.info, _("Enter context: `Senlin Profile`"))
     def setup(self):
-        utils.init_sahara_context(self)
-        self.context["senlin"]["profile"] = {}
+        senlin_utils.init_senlin_context(self)
 
         spec_file = self.config.get("spec_file")
-        profile_name = self.config.get(profile_name) 
+        profile_name = self.config.get("profile_name") 
         if not profile_name: 
             profile_name = self.generate_random_name()
 
@@ -70,6 +69,5 @@ class SenlinProfile(context.Context):
 
     @logging.log_task_wrapper(LOG.info, _("Exit context: `Senlin Profile`"))
     def cleanup(self):
-        if self.context["senlin"]["need_profile_cleanup"]:
-            resource_manager.cleanup(names=["senlin.profiles"],
-                                     users=self.context.get("users", []))
+        resource_manager.cleanup(names=["senlin.profiles"],
+                                 users=self.context.get("users", []))

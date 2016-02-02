@@ -334,14 +334,14 @@ class Senlin(OSClient):
     def create_client(self, version=None, service_type=None):
         """Return senlin client."""
         from senlinclient import client as senlin
-        kc = self.keystone()
-        clustering_api_url = kc.service_catalog.url_for(
-            service_type=self.choose_service_type(service_type),
-            endpoint_type=self.credential.endpoint_type,
-            region_name=self.credential.region_name)
-        client = senlin.Client(self.choose_version(version),
-                               endpoint=clustering_api_url,
-                               token=kc.auth_token)
+        creds = self.credential.to_dict()
+        params = {}
+        params["auth_url"] = creds["auth_url"]
+        params["project_name"] = creds["tenant_name"]
+        params["username"] = creds["username"]
+        params["password"] = creds["password"]
+
+        client = senlin.Client("1", **params)
         return client
 
 

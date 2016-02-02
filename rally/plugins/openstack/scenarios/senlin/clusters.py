@@ -26,6 +26,7 @@ class SenlinClusters(utils.SenlinScenario):
 
     @validation.required_services(consts.Service.SENLIN)
     @validation.required_openstack(users=True)
+    @validation.required_contexts("users", "senlin_profile")
     @scenario.configure(context={"cleanup": ["senlin"]})
     def create_and_list_cluster(self, min_size=0, max_size=-1,
                                 desired_capacity=None, timeout=None):
@@ -48,6 +49,7 @@ class SenlinClusters(utils.SenlinScenario):
 
     @validation.required_services(consts.Service.SENLIN)
     @validation.required_openstack(users=True)
+    @validation.required_contexts("users", "senlin_profile")
     @scenario.configure(context={"cleanup": ["senlin"]})
     def create_and_delete_cluster(self, min_size=0, max_size=-1,
                                   desired_capacity=None, timeout=None):
@@ -70,6 +72,7 @@ class SenlinClusters(utils.SenlinScenario):
 
     @validation.required_services(consts.Service.SENLIN)
     @validation.required_openstack(users=True)
+    @validation.required_contexts("users", "senlin_profile")
     @scenario.configure(context={"cleanup": ["senlin"]})
     def create_cluster_and_scale(self, deltas, min_size=0, max_size=-1,
                                  desired_capacity=None, timeout=None):

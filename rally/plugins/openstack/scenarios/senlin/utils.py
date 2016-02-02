@@ -19,11 +19,12 @@ from oslo_config import cfg
 import requests
 
 from rally.common import logging
+from rally.common import utils as rutils
 from rally import exceptions
 from rally.plugins.openstack import scenario
 from rally.task import atomic
 from rally.task import utils
-from senlinclient.common import senlin_utils
+from senlinclient.common import utils as  senlin_utils
 
 LOG = logging.getLogger(__name__)
 
@@ -95,6 +96,7 @@ class SenlinScenario(scenario.OpenStackScenario):
         cluster_name = self.generate_random_name()
         kw = {
             "name": cluster_name,
+            'profile_id': args.profile,
             "min_size": min_size,
             "desired_capacity": desired_capacity,
             "max_size": max_size,
@@ -187,7 +189,7 @@ class SenlinScenario(scenario.OpenStackScenario):
     def _update_cluster(self, cluster):
         return self.clients("senlin").get_cluster(cluster.id)
 
-    def _create_profile(self, spec_file):
+    def _create_profile(self, spec_file, profile_name):
         LOG.debug("Create profile.")
         spec =  senlin_utils.get_spec_content(spec_file)
         type_name = spec.get('type', None)
@@ -195,13 +197,21 @@ class SenlinScenario(scenario.OpenStackScenario):
         properties = spec.get('properties', None)
 
         params = {
-            'name': args.name,
+            'name': profile_name,
             'spec': spec,
         }
      
-        profile = service.create_profile(**params)
+        profile = self.clients("senlin").create_profile(**params)
         return profile
 
     def _delete_profile(self, profile):
         LOG.debug("Delete profile `%s`" % profile.id)
         service.delete_profile(profile.id)
+
+def init_senlin_context(context_instance):
+    context_instance.context["senlin"] = context_instance.context.get("senlin",
+                                                                      {})
+    for user, tenant_id in rutils.iterate_per_tenants(
+            context_instance.context["users"]):
+        context_instance.context["tenants"][tenant_id]["senlin"] = (
+            context_instance.context["tenants"][tenant_id].get("senlin", {}))
