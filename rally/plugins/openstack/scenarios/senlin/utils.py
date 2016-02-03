@@ -41,7 +41,7 @@ SENLIN_BENCHMARK_OPTS = [
                  help="Time interval(in sec) between checks when waiting for "
                       "cluster creation."),
     cfg.FloatOpt("senlin_cluster_delete_timeout",
-                 default=3600.0,
+                 default=120.0,
                  help="Time(in sec) to wait for senlin cluster to be deleted."),
     cfg.FloatOpt("senlin_cluster_delete_poll_interval",
                  default=1.0,
@@ -131,7 +131,6 @@ class SenlinScenario(scenario.OpenStackScenario):
         #cluster.delete()
         utils.wait_for(
             cluster,
-            update_resource=utils.get_from_manager(),
             timeout=CONF.benchmark.senlin_cluster_delete_timeout,
             check_interval=CONF.benchmark.senlin_cluster_delete_poll_interval,
             is_ready=self._is_cluster_deleted)

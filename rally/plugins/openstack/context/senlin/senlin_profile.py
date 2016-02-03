@@ -56,10 +56,13 @@ class SenlinProfile(context.Context):
         if not profile_name: 
             profile_name = self.generate_random_name()
 
-        for user, tenant_id in rutils.iterate_per_tenants(
-                self.context["users"]):
-            senlin_scenario = senlin_utils.SenlinScenario(
-                {"user": user, "task": self.context["task"]})
+        for iter_, (user, tenant_id) in enumerate(rutils.iterate_per_tenants(
+                self.context["users"])):
+            tmp_context = {"user": user,
+                           "tenant": self.context["tenants"][tenant_id],
+                           "task": self.context["task"],
+                           "iteration": iter_}
+            senlin_scenario = senlin_utils.SenlinScenario(tmp_context)
      
             profile = senlin_scenario._create_profile(
                 spec_file, profile_name)

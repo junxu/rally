@@ -68,7 +68,7 @@ class SenlinClusters(utils.SenlinScenario):
         profile = self.context["tenant"]["senlin"]["profile"]
         cluster = self._create_cluster(profile, min_size, max_size,
                                        desired_capacity, timeout)
-        self._delete_stack(cluster)
+        self._delete_cluster(cluster)
 
     @validation.required_services(consts.Service.SENLIN)
     @validation.required_openstack(users=True)
@@ -94,4 +94,4 @@ class SenlinClusters(utils.SenlinScenario):
         for delta in deltas: 
             self._scale_cluster(cluster, delta)
 
-        self._delete_stack(cluster)
+        self._delete_cluster(cluster)
